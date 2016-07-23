@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Browserception</title>
+  <link rel="stylesheet" media="all" href="./node_modules/mocha/mocha.css">
+</head>
+<body>
+  <div id="mocha"><p><a href=".">Index</a></p></div>
+  <div id="messages"></div>
+  <div id="fixtures"></div>
+  <script src="./node_modules/mocha/mocha.js"></script>
+  <script src="./node_modules/chai/chai.js"></script>
+  <script>mocha.setup('bdd'); var expect = chai.expect;</script>
+
+  <!-- CODE -->
+  <script>
+    function calc(expr) {
+
+        var expressionToParse = expr.replace(/\s+/g, '').split('');
+
+        function peek () {
+            return expressionToParse[0] || '';
+        }
+
+        function get () {
+            return expressionToParse.shift();
+        }
+
+        /*
+          Grammar Rule:
+          number = [0-9] {[0-9.]+}
+
+          Hint: remember this means we need to get the first number
+            followed by any number of numbers (or the period .)
+
+         */
+        function number () {
+          var result = "";
+          while (/[0-9\.]/.test(peek())) {
+            result += get();
+          }
+          return parseInt(result);
+        }
+
+        /* Grammar Rule:
+          factor = number
+                  | "(" expression ")"
+                  | - factor
+
+          Hints:
+            - If we see a number, produce a number
+            - If we see a (  then consume it and an expression
+            - If we see a "-", return the negative of the factor
+         */
+        function factor () {
+          var result;
+          if (peek() == '-') {
+              get();
+              result = -1 * factor();
+          } else if (peek() == '(' ) {
+              get();
+              result = expression();
+              get();
+          } else if (/\d+/.test(peek())) {
+              result = number();
+          }
+          return result;
+        }
+
+
+
+
+        /*
+          term = factor {(*|/) factor}
+         */
+        function term () {
+          var result = factor();
+          while (peek() == '*' || peek() =='/') {
+            if (get() == '*') {
+                result *= term();
+            } else {
+                result /= term();
+            }
+          }
+          return result;
+        }
+
+        /* Grammar Rules
+            expression = term {(+|-) term}
+        */
+        function expression () {
+            var result = term();
+            while (peek() == '+' || peek() == '-') {
+                if (get() == '+') {
+                    result += term();
+                } else {
+                    result -= term();
+                }
+            }
+            return result;
+        }
+
+        return expression();
+    }
+  </script>
+  <!-- TESTS -->
+
+  <script>
+  describe("calculator", function() {
+    it("can handle basic math functions: 1+2", function() {
+      expect(calc("1+2")).to.eql(3);
+    });
+
+    it("can handle basic math functions: 1+2*3", function() {
+      expect(calc("1+2*3")).to.eql(7);
+    })
+
+
+    it("can handle basic math functions: 4+(5-3*4)", function() {
+      expect(calc("4+(5-3*4)")).to.eql(-3);
+    })
+  })
+  </script>
+  <script>mocha.run();</script>
+
+</body>
+</html>
